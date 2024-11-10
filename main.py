@@ -55,7 +55,7 @@ while running:
         
         paddle.draw(screen)
         ball.draw(screen)
-        for tile, tile_type in tiles:
+        for tile, tile_type in tiles: ### handle false paddle deletion, draw game space border
             pygame.draw.rect(screen, tile_types[tile_type]["color"], tile)
         draw_score_and_lives(screen, font, score, lives, WIDTH, MARGIN)
     elif game_state == "game_over":
