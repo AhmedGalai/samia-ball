@@ -24,26 +24,35 @@ clock = pygame.time.Clock()
 while running:
     screen.fill((0, 0, 0))
 
+    # Toggle cursor visibility based on game state
+    if game_state == "playing":
+        pygame.mouse.set_visible(False)
+    else:
+        pygame.mouse.set_visible(True)
+
     # Draw relevant screen based on game state
     if game_state == "main_menu":
         start_rect, highscore_rect = draw_main_menu(screen, font)
     elif game_state == "highscore":
-        reset_rect, back_rect = draw_highscore_screen(screen, font, highscores)  # Pass highscores here
+        reset_rect, back_rect = draw_highscore_screen(screen, font, highscores)
     elif game_state == "playing":
         paddle.move(pygame.mouse.get_pos()[0], WIDTH)
         ball.move(WIDTH, HEIGHT, MARGIN, SCORE_PADDING, paddle)
-        if ball.check_collision_with_tiles(tiles, tile_types):
+        if ball.check_collision_with_tiles(tiles, tile_types, columns=10, rows=5):
             score += ball.last_tile_score
+
         if ball.bottom_out_of_bounds(HEIGHT, MARGIN):
             lives -= 1
             if lives > 0:
-                ball.reset_position(WIDTH // 2, HEIGHT // 2)
+                ball.reset_position(WIDTH // 2, HEIGHT - 50)
             else:
                 game_state = "game_over"
-        if len(tiles) == 0:  # All tiles cleared
-            level += 1
+        # Check if only unbreakable tiles remain
+        if all(tile_type == 2 for _, tile_type in tiles):
+            level += 1  # Advance level
             tiles = generate_tiles()
-            ball.reset_position(WIDTH // 2, HEIGHT // 2)
+            ball.reset_position(WIDTH // 2, HEIGHT - 50)
+        
         paddle.draw(screen)
         ball.draw(screen)
         for tile, tile_type in tiles:
@@ -65,7 +74,7 @@ while running:
             if start_rect.collidepoint(event.pos):
                 game_state, tiles = "playing", generate_tiles()
                 paddle.reset_position(WIDTH // 2, HEIGHT - 50)
-                ball.reset_position(WIDTH // 2, HEIGHT // 2)
+                ball.reset_position(WIDTH // 2, HEIGHT - 50)
                 score, lives = 0, 3
             elif highscore_rect.collidepoint(event.pos):
                 game_state = "highscore"
@@ -75,8 +84,15 @@ while running:
             elif reset_rect.collidepoint(event.pos):
                 reset_highscores()
                 highscores = load_highscores()  # Reload highscores after reset
-
+        elif game_state == "playing" and event.type == pygame.MOUSEBUTTONDOWN:
+            # Release the ball from magnetic paddle on click
+            if ball.attached_to_paddle:
+                paddle.release_magnetic()
+                ball.release_from_paddle()
     pygame.display.flip()
     clock.tick(60)
+
+# Restore cursor visibility on exit
+pygame.mouse.set_visible(True)
 
 pygame.quit()
